@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -e
+
+PREFIX="> pre-commit [$(basename $0)]\t\t"
+MAVEN_OPTS="-XX:+TieredCompilation -XX:TieredStopAtLevel=1 -Xms768M"
+
+echo -e "$PREFIX auto-applying spotless changes"
+mvn -T 1C -q spotless:apply
+echo -e "$PREFIX adding changes to index"
+git add -u -v
