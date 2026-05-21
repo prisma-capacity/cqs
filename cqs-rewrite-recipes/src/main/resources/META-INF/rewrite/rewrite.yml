@@ -1,0 +1,29 @@
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: eu.prismacapacity.cqs.spring.MigrateHandlersToSpringAbstract
+description: Migrates old AOP-based CQS handlers to new ones, leveraging on abstract base classes and Spring DI.
+recipeList:
+  - org.openrewrite.java.ChangePackage:
+      oldPackageName: eu.prismacapacity.spring.cqs.cmd
+      newPackageName: eu.prismacapacity.cqs.core.cmd
+  - org.openrewrite.java.ChangePackage:
+      oldPackageName: eu.prismacapacity.spring.cqs.query
+      newPackageName: eu.prismacapacity.cqs.core.query
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: eu.prismacapacity.cqs.core.cmd.CommandHandler
+      newFullyQualifiedTypeName: eu.prismacapacity.cqs.spring.cmd.SpringCommandHandler
+      ignoreDefinition: true
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: eu.prismacapacity.cqs.core.cmd.TokenCommandHandler
+      newFullyQualifiedTypeName: eu.prismacapacity.cqs.spring.cmd.SpringTokenCommandHandler
+      ignoreDefinition: true
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: eu.prismacapacity.cqs.core.cmd.RespondingCommandHandler
+      newFullyQualifiedTypeName: eu.prismacapacity.cqs.spring.cmd.SpringRespondingCommandHandler
+      ignoreDefinition: true
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: eu.prismacapacity.cqs.core.query.QueryHandler
+      newFullyQualifiedTypeName: eu.prismacapacity.cqs.spring.cmd.SpringQueryHandler
+      ignoreDefinition: true
+  - eu.prismacapacity.cqs.recipes.spring.MigrateHandlersHierarchyRecipe
+  - eu.prismacapacity.cqs.recipes.spring.RenameHandleToDoHandleRecipe

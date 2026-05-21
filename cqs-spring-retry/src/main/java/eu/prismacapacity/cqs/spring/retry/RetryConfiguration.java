@@ -15,8 +15,8 @@
  */
 package eu.prismacapacity.cqs.spring.retry;
 
-import eu.prismacapacity.spring.cqs.core.cmd.CommandValidationException;
-import eu.prismacapacity.spring.cqs.core.query.QueryValidationException;
+import eu.prismacapacity.cqs.core.cmd.CommandValidationException;
+import eu.prismacapacity.cqs.core.query.QueryValidationException;
 import java.lang.annotation.*;
 
 @Retention(RetentionPolicy.RUNTIME)

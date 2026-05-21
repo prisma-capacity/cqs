@@ -40,6 +40,7 @@
     <module>cqs-aop</module>
     <module>cqs-aop-spring-boot-starter</module>
     <module>cqs-spring-retry</module>
+    <module>cqs-rewrite-recipes</module>
   </modules>
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
