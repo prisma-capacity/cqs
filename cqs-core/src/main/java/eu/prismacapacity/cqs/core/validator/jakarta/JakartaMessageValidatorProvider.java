@@ -13,20 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package eu.prismacapacity.cqs.core.query;
+package eu.prismacapacity.cqs.core.validator.jakarta;
 
+import eu.prismacapacity.cqs.core.validator.MessageValidatorProvider;
+import java.util.Optional;
 import lombok.NonNull;
 
-/**
- * happened while bean validation of the incoming command, or during execution of the validate
- * method of a ({@link QueryHandler}
- */
-public class QueryValidationException extends QueryHandlingException {
-  public QueryValidationException(@NonNull String msg, @NonNull Throwable e) {
-    super(msg, e);
-  }
+public class JakartaMessageValidatorProvider
+    implements MessageValidatorProvider<JakartaMessageValidator> {
 
-  public QueryValidationException(@NonNull Throwable e) {
-    super(e);
+  @NonNull
+  @Override
+  public Optional<JakartaMessageValidator> get() {
+    try {
+      Class.forName("jakarta.validation.Validator");
+      return Optional.of(new JakartaMessageValidator());
+    } catch (ClassNotFoundException ignored) {
+    }
+    return Optional.empty();
   }
 }

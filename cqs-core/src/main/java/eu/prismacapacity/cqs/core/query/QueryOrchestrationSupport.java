@@ -15,10 +15,8 @@
  */
 package eu.prismacapacity.cqs.core.query;
 
-import java.util.Set;
+import eu.prismacapacity.cqs.core.validator.MessageValidatorFactory;
 import java.util.concurrent.TimeoutException;
-import javax.validation.ConstraintViolation;
-import javax.validation.Validator;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 
@@ -27,14 +25,16 @@ public class QueryOrchestrationSupport {
 
   public <Q extends Query, T> T orchestrate(
       @NonNull Q query,
-      @NonNull Validator validator,
       @NonNull QueryStep<Q> validateStep,
       @NonNull QueryStep<Q> verifyStep,
       @NonNull QueryInvocation<Q, T> handleStep,
       @NonNull Runnable timeoutHook) {
-    Set<ConstraintViolation<Q>> violations = validator.validate(query);
-    if (!violations.isEmpty()) {
-      throw new QueryValidationException(violations);
+    try {
+      for (var v : MessageValidatorFactory.discoverValidators()) {
+        v.validate(query);
+      }
+    } catch (Throwable e) {
+      throw new QueryValidationException(e);
     }
 
     try {

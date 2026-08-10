@@ -16,18 +16,18 @@ Simple abstractions we use to follow the CQS Principle in applications.
 ### Motivation
 
 The [CQS Principle](https://en.wikipedia.org/wiki/Command–query_separation) states that "every method should either be a command that performs an action, or a query that 
-returns data to the caller, but not both." in order to reduce side-effects.
+returns data to the caller, but not both" to reduce side effects.
 
 In our projects we use abstractions like Query & QueryHandler as well as Command & CommandHandler to follow this
-principle. However, there is a bit of fine print here that makes it worthwhile to reuse this in form of a library:
+principle. However, there is a bit of fine print here that makes it worthwhile to reuse this in the form of a library:
 
-* a command / a query needs to be valid (as in java.validation valid), otherwise a Command/Query-ValidationExcption will
-  be thrown
-* a command / a query needs to be valid (determined by an optional message on the handler), otherwise a
-  Command/Query-ValidationExcption will be thrown
-* a command / a query needs to be verified by a mandatory method in the handler the is expected to throw a
-  Command/Query-VerificationException
-* when a command / a query is handled, any exception it may throw is to be wrapped in a Command/Query-Handling Exception
+* a command / query needs to be valid (determined by a MessageValidator), otherwise a Command/Query-ValidationExcption 
+  will be thrown
+* a command / query needs to be valid (determined by an optional message on the handler), otherwise a
+  Command/Query-ValidationException will be thrown
+* a command / query needs to be verified by a mandatory method in the handler, otherwise a
+  Command/Query-VerificationException will be thrown
+* when a command / query is handled, any exception it may throw is wrapped in a Command/Query-HandlingException
 
 ### Usage
 
@@ -35,28 +35,9 @@ TODO
 
 #### Maven
 
-`cqs` is a parent-only artifact (`packaging: pom`). For Spring Boot applications, use one of the
-starter modules:
+`cqs` is a parent-only artifact (`packaging: pom`).
 
-````
-    <dependency>
-      <groupId>eu.prismacapacity</groupId>
-      <artifactId>cqs-spring-boot-starter</artifactId>
-      <version><!-- put the desired version in here--></version>
-    </dependency>
-````
-
-or, for the AOP based integration:
-
-````
-    <dependency>
-      <groupId>eu.prismacapacity</groupId>
-      <artifactId>cqs-aop-spring-boot-starter</artifactId>
-      <version><!-- put the desired version in here--></version>
-    </dependency>
-````
-
-For non-Spring usage, use `cqs-core` as dependency:
+Use `cqs-core` as dependency:
 
 ````
     <dependency>

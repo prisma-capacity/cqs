@@ -13,20 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package eu.prismacapacity.cqs.core.query;
+package eu.prismacapacity.cqs.core.retry;
 
+import java.util.function.Function;
 import lombok.NonNull;
+import lombok.SneakyThrows;
 
-/**
- * happened while bean validation of the incoming command, or during execution of the validate
- * method of a ({@link QueryHandler}
- */
-public class QueryValidationException extends QueryHandlingException {
-  public QueryValidationException(@NonNull String msg, @NonNull Throwable e) {
-    super(msg, e);
-  }
-
-  public QueryValidationException(@NonNull Throwable e) {
-    super(e);
+public class NoRetryExecutor implements RetryExecutor {
+  @Override
+  @SneakyThrows
+  public <T> T execute(@NonNull Class<?> handler, @NonNull Function<Integer, T> fn) {
+    return fn.apply(0);
   }
 }

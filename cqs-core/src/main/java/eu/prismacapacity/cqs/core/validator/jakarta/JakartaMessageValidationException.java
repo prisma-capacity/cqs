@@ -13,20 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package eu.prismacapacity.cqs.core.query;
+package eu.prismacapacity.cqs.core.validator.jakarta;
 
+import eu.prismacapacity.cqs.core.Message;
+import jakarta.validation.ConstraintViolation;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.NonNull;
 
-/**
- * happened while bean validation of the incoming command, or during execution of the validate
- * method of a ({@link QueryHandler}
- */
-public class QueryValidationException extends QueryHandlingException {
-  public QueryValidationException(@NonNull String msg, @NonNull Throwable e) {
-    super(msg, e);
+public class JakartaMessageValidationException extends RuntimeException {
+  public JakartaMessageValidationException(
+      @NonNull Set<? extends ConstraintViolation<? extends Message>> violations) {
+    super(render(violations));
   }
 
-  public QueryValidationException(@NonNull Throwable e) {
-    super(e);
+  public static String render(@NonNull Set<? extends ConstraintViolation<?>> violations) {
+    return violations.stream()
+        .map(ConstraintViolation::getMessage)
+        .collect(Collectors.joining("\n"));
   }
 }

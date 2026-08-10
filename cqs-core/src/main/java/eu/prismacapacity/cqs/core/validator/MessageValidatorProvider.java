@@ -13,20 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package eu.prismacapacity.cqs.core.query;
+package eu.prismacapacity.cqs.core.validator;
 
+import java.util.Optional;
 import lombok.NonNull;
 
-/**
- * happened while bean validation of the incoming command, or during execution of the validate
- * method of a ({@link QueryHandler}
- */
-public class QueryValidationException extends QueryHandlingException {
-  public QueryValidationException(@NonNull String msg, @NonNull Throwable e) {
-    super(msg, e);
-  }
+public interface MessageValidatorProvider<T extends MessageValidator<?>> {
 
-  public QueryValidationException(@NonNull Throwable e) {
-    super(e);
-  }
+  @NonNull
+  Optional<T> get();
 }

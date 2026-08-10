@@ -15,11 +15,6 @@
  */
 package eu.prismacapacity.cqs.core.cmd;
 
-import eu.prismacapacity.cqs.core.Violations;
-import java.util.HashSet;
-import java.util.Set;
-import javax.validation.ConstraintViolation;
-import lombok.Getter;
 import lombok.NonNull;
 
 /**
@@ -27,15 +22,6 @@ import lombok.NonNull;
  * method of a ({@link RespondingCommandHandler} or {@link TokenCommandHandler}
  */
 public class CommandValidationException extends CommandHandlingException {
-  @Getter
-  private Set<? extends ConstraintViolation<? extends Command>> violations = new HashSet<>();
-
-  public CommandValidationException(
-      @NonNull Set<? extends ConstraintViolation<? extends Command>> violations) {
-    super(Violations.render(violations));
-    this.violations = violations;
-  }
-
   public CommandValidationException(@NonNull String msg, @NonNull Throwable e) {
     super(msg, e);
   }

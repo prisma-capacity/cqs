@@ -15,9 +15,7 @@
  */
 package eu.prismacapacity.cqs.core.cmd;
 
-import java.util.Set;
-import javax.validation.ConstraintViolation;
-import javax.validation.Validator;
+import eu.prismacapacity.cqs.core.validator.MessageValidatorFactory;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 
@@ -26,14 +24,16 @@ public class CommandOrchestrationSupport {
 
   public <C extends Command, R> R orchestrate(
       @NonNull C cmd,
-      @NonNull Validator validator,
       @NonNull CommandStep<C> validateStep,
       @NonNull CommandStep<C> verifyStep,
       @NonNull CommandInvocation<C, R> handleStep,
       boolean allowNullResponse) {
-    Set<ConstraintViolation<C>> violations = validator.validate(cmd);
-    if (!violations.isEmpty()) {
-      throw new CommandValidationException(violations);
+    try {
+      for (var v : MessageValidatorFactory.discoverValidators()) {
+        v.validate(cmd);
+      }
+    } catch (Throwable e) {
+      throw new CommandValidationException(e);
     }
 
     try {
@@ -62,7 +62,7 @@ public class CommandOrchestrationSupport {
     }
 
     if (!allowNullResponse && result == null) {
-      throw new CommandHandlingException("Response must not be null");
+      throw new CommandHandlingException("Response must not be null.");
     }
 
     return result;

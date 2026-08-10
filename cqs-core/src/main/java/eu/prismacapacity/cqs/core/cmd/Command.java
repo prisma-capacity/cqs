@@ -15,5 +15,7 @@
  */
 package eu.prismacapacity.cqs.core.cmd;
 
+import eu.prismacapacity.cqs.core.Message;
+
 /** marker interface, base for any kind of Command. */
-public interface Command {}
+public interface Command extends Message {}
