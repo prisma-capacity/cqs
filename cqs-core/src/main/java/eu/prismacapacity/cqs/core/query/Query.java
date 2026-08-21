@@ -18,4 +18,7 @@ package eu.prismacapacity.cqs.core.query;
 import eu.prismacapacity.cqs.core.Message;
 
 /** marker class, base for all queries */
-public interface Query extends Message {}
+public interface Query extends Message {
+    @Override
+    void validate() throws QueryValidationException;
+}

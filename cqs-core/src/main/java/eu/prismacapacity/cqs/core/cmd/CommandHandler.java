@@ -18,7 +18,9 @@ package eu.prismacapacity.cqs.core.cmd;
 import lombok.NonNull;
 
 /** A command handler that returns void. Should be used as a default. */
-public interface CommandHandler<C extends Command> extends ICommandHandler<C> {
+public interface CommandHandler<C extends Command> extends ICommandHandler<C>{
 
   void handle(@NonNull C cmd) throws CommandHandlingException;
+
+
 }

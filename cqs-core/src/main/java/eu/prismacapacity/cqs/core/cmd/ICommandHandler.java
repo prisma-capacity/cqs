@@ -18,8 +18,5 @@ package eu.prismacapacity.cqs.core.cmd;
 import lombok.NonNull;
 
 public interface ICommandHandler<C extends Command> {
-
-  default void validate(@NonNull C cmd) throws CommandValidationException {}
-
   void verify(@NonNull C cmd) throws CommandVerificationException;
 }

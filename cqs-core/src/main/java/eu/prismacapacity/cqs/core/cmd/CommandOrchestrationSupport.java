@@ -68,6 +68,10 @@ public class CommandOrchestrationSupport {
     return result;
   }
 
+  public static <R, C extends Command, H extends ICommandHandler<C>> CommandInvocation<C,R> createInvocation(H h) {
+    //TODO
+  }
+
   @FunctionalInterface
   public interface CommandStep<C extends Command> {
     void perform(@NonNull C cmd) throws Throwable;

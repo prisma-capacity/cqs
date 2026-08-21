@@ -15,4 +15,8 @@
  */
 package eu.prismacapacity.cqs.core;
 
-public interface Message {}
+
+public interface Message {
+    // TODO check if we want a supertype for both
+    void validate() throws Exception;
+}
