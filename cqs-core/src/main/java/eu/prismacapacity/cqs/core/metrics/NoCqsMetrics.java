@@ -16,16 +16,19 @@
 package eu.prismacapacity.cqs.core.metrics;
 
 import java.util.function.Supplier;
+import lombok.NonNull;
 
 public class NoCqsMetrics implements CqsMetrics {
 
   @Override
-  public <T> T timedCommand(String commandHandlerClass, int retryCount, Supplier<T> fn) {
+  public <T> T timedCommand(
+      @NonNull String commandHandlerClass, int retryCount, @NonNull Supplier<T> fn) {
     return fn.get();
   }
 
   @Override
-  public <T> T timedQuery(String queryHandlerClass, int retryCount, Supplier<T> fn) {
+  public <T> T timedQuery(
+      @NonNull String queryHandlerClass, int retryCount, @NonNull Supplier<T> fn) {
     return fn.get();
   }
 

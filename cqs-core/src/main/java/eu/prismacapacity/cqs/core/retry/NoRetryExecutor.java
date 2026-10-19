@@ -17,11 +17,9 @@ package eu.prismacapacity.cqs.core.retry;
 
 import java.util.function.Function;
 import lombok.NonNull;
-import lombok.SneakyThrows;
 
 public class NoRetryExecutor implements RetryExecutor {
   @Override
-  @SneakyThrows
   public <T> T execute(@NonNull Class<?> handler, @NonNull Function<Integer, T> fn) {
     return fn.apply(0);
   }

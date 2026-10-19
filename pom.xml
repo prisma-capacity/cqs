@@ -35,10 +35,11 @@
   </scm>
   <modules>
     <module>cqs-core</module>
+    <module>spring-aop-example</module>
   </modules>
   <properties>
-    <maven.compiler.source>11</maven.compiler.source>
-    <maven.compiler.target>11</maven.compiler.target>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
     <maven.version>3.3.9</maven.version>
     <lombok.version>1.18.44</lombok.version>
   </properties>

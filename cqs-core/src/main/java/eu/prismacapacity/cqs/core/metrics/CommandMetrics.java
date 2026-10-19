@@ -16,7 +16,8 @@
 package eu.prismacapacity.cqs.core.metrics;
 
 import java.util.function.Supplier;
+import lombok.NonNull;
 
 public interface CommandMetrics {
-  <T> T timedCommand(String commandHandlerClass, int retryCount, Supplier<T> fn);
+  <T> T timedCommand(@NonNull String commandHandlerClass, int retryCount, @NonNull Supplier<T> fn);
 }

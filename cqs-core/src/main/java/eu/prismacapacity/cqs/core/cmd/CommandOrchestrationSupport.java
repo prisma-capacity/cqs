@@ -15,7 +15,10 @@
  */
 package eu.prismacapacity.cqs.core.cmd;
 
-import eu.prismacapacity.cqs.core.validator.MessageValidatorFactory;
+import eu.prismacapacity.cqs.core.OrchestrationConfiguration;
+import eu.prismacapacity.cqs.core.query.QueryValidationException;
+import eu.prismacapacity.cqs.core.query.QueryVerificationException;
+import eu.prismacapacity.cqs.core.retry.RetryExecutor;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 
@@ -23,62 +26,72 @@ import lombok.experimental.UtilityClass;
 public class CommandOrchestrationSupport {
 
   public <C extends Command, R> R orchestrate(
-      @NonNull C cmd,
-      @NonNull CommandStep<C> validateStep,
+      @NonNull C message,
+      @NonNull Class<?> handlerClass,
       @NonNull CommandStep<C> verifyStep,
       @NonNull CommandInvocation<C, R> handleStep,
-      boolean allowNullResponse) {
-    try {
-      for (var v : MessageValidatorFactory.discoverValidators()) {
-        v.validate(cmd);
-      }
-    } catch (Throwable e) {
-      throw new CommandValidationException(e);
-    }
+      boolean allowNullResponse,
+      @NonNull OrchestrationConfiguration configuration,
+      @NonNull RetryExecutor executor) {
 
     try {
-      validateStep.perform(cmd);
+      for (var validator : configuration.validators()) {
+        validator.validate(message);
+      }
+      message.validate();
     } catch (CommandValidationException e) {
       throw e;
     } catch (Throwable e) {
       throw new CommandValidationException(e);
     }
 
-    try {
-      verifyStep.perform(cmd);
-    } catch (CommandVerificationException e) {
-      throw e;
-    } catch (Throwable e) {
-      throw new CommandVerificationException(e);
-    }
+    R response =
+        executor.execute(
+            handlerClass,
+            retryCount ->
+                configuration
+                    .metrics()
+                    .timedCommand(
+                        handlerClass.getName(),
+                        retryCount,
+                        () -> {
+                          try {
+                            verifyStep.perform(message);
+                          } catch (Throwable e) {
+                            throw e instanceof CommandVerificationException
+                                ? (CommandVerificationException) e
+                                : new CommandVerificationException(e);
+                          }
 
-    R result;
-    try {
-      result = handleStep.invoke(cmd);
-    } catch (CommandHandlingException e) {
-      throw e;
-    } catch (Throwable e) {
-      throw new CommandHandlingException(e);
-    }
+                          R result;
+                          try {
+                            result = handleStep.invoke(message);
+                          } catch (CommandValidationException
+                              | QueryValidationException
+                              | CommandVerificationException
+                              | QueryVerificationException e) {
+                            throw e;
+                          } catch (Throwable e) {
+                            throw e instanceof CommandHandlingException
+                                ? (CommandHandlingException) e
+                                : new CommandHandlingException(e);
+                          }
 
-    if (!allowNullResponse && result == null) {
+                          return result;
+                        }));
+    if (!allowNullResponse && response == null) {
       throw new CommandHandlingException("Response must not be null.");
     }
-
-    return result;
-  }
-
-  public static <R, C extends Command, H extends ICommandHandler<C>> CommandInvocation<C,R> createInvocation(H h) {
-    //TODO
+    return response;
   }
 
   @FunctionalInterface
   public interface CommandStep<C extends Command> {
-    void perform(@NonNull C cmd) throws Throwable;
+    void perform(@NonNull C message) throws Throwable;
   }
 
   @FunctionalInterface
   public interface CommandInvocation<C extends Command, R> {
-    R invoke(@NonNull C cmd) throws Throwable;
+    R invoke(@NonNull C message) throws Throwable;
   }
 }

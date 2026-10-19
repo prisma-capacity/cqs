@@ -20,19 +20,19 @@ import eu.prismacapacity.cqs.core.validator.MessageValidator;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
+import jakarta.validation.ValidatorFactory;
 import java.util.Set;
 import lombok.NonNull;
 
-public class JakartaMessageValidator implements MessageValidator<Message> {
+public class JakartaMessageValidator implements MessageValidator<Message>, AutoCloseable {
 
-  private final Validator validator = fatchValidator();
+  private final ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+  private final Validator validator = factory.getValidator();
 
-  // would throw if no impl available
-  @NonNull
-  private Validator fatchValidator() {
-    try (var factory = Validation.buildDefaultValidatorFactory()) {
-      return factory.getValidator();
-    }
+  /** Close at application shutdown, after all processors using this validator have stopped. */
+  @Override
+  public void close() {
+    factory.close();
   }
 
   @Override

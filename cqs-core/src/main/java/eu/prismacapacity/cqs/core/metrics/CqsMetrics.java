@@ -15,4 +15,9 @@
  */
 package eu.prismacapacity.cqs.core.metrics;
 
+/**
+ * Application-wide metrics. A classpath ServiceLoader provider must implement this interface and
+ * expose a public no-argument constructor. Register its fully qualified class name in the
+ * application's {@code META-INF/services/eu.prismacapacity.cqs.core.metrics.CqsMetrics} resource.
+ */
 public interface CqsMetrics extends CommandMetrics, QueryMetrics {}

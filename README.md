@@ -23,42 +23,183 @@ principle. However, there is a bit of fine print here that makes it worthwhile t
 
 * a command / query needs to be valid (determined by a MessageValidator), otherwise a Command/Query-ValidationExcption 
   will be thrown
-* a command / query needs to be valid (determined by an optional message on the handler), otherwise a
-  Command/Query-ValidationException will be thrown
+* a command / query validates itself through its mandatory `validate()` method; external validators
+  supplement these checks
 * a command / query needs to be verified by a mandatory method in the handler, otherwise a
   Command/Query-VerificationException will be thrown
 * when a command / query is handled, any exception it may throw is wrapped in a Command/Query-HandlingException
 
 ### Usage
 
-TODO
+Java 17 is required. Use `eu.prismacapacity:cqs-core:0.0.1-SNAPSHOT` as the runtime dependency.
+`cqs` is a parent POM. Core has no Spring dependencies. The separate `spring-aop-example` module
+demonstrates client-owned AOP wiring and direct calls to managed handlers.
 
-#### Maven
+#### Plain Java
 
-`cqs` is a parent-only artifact (`packaging: pom`).
+Handlers implement mandatory business verification and business execution. Messages own validation.
+Raw `handler.handle(message)` calls perform business execution only. Create a typed processor to
+apply orchestration:
 
-Use `cqs-core` as dependency:
+```java
+import eu.prismacapacity.cqs.core.OrchestrationConfiguration;
+import eu.prismacapacity.cqs.core.cmd.*;
+import eu.prismacapacity.cqs.core.retry.RetryPolicy;
 
-````
-    <dependency>
-      <groupId>eu.prismacapacity</groupId>
-      <artifactId>cqs-core</artifactId>
-      <version><!-- put the desired version in here--></version>
-    </dependency>
-````
+record RenameAccount(String name) implements Command {
+  @Override
+  public void validate() {
+    if (name == null || name.isBlank()) {
+      throw new IllegalArgumentException("name is required");
+    }
+  }
+}
 
-#### Configuration
+class RenameAccountHandler implements CommandHandler<RenameAccount> {
+  @Override
+  public void verify(RenameAccount command) {
+    // Check permissions and business preconditions here.
+  }
 
-TODO
+  @Override
+  public void handle(RenameAccount command) {
+    // Persist the new account name here.
+  }
+}
 
-#### Example
+// Application wiring: share this immutable configuration across processors.
+var configuration = OrchestrationConfiguration.defaults();
+var handler = new RenameAccountHandler();
+CommandProcessor<RenameAccount> processor = CommandProcessorFactory.create(
+    handler, configuration, RetryPolicy.noRetry());
+processor.process(new RenameAccount("Example"));
+```
 
-TODO
+All four forms use the same phases:
 
-#### Configure a retry behaviour for Command and Query handlers
+| Handler | Factory | Processor result |
+| --- | --- | --- |
+| `CommandHandler<C>` | `CommandProcessorFactory.create(handler, configuration, policy)` | `void` |
+| `TokenCommandHandler<C>` | `CommandProcessorFactory.create(handler, configuration, policy)` | `CommandTokenResponse` |
+| `RespondingCommandHandler<C, R>` | `CommandProcessorFactory.create(handler, configuration, policy)` | `CommandValueResponse<R>` |
+| `QueryHandler<Q, T>` | `QueryProcessorFactory.create(handler, configuration, policy)` | `T` |
 
-TODO
+Each factory also has `create(handler)` using discovered validators, configured metrics and no retry.
+`QueryProcessor` and `QueryProcessorFactory` remain in the `core.cmd` package for compatibility.
+Void commands allow no response; the other three forms reject a null response object.
+The fields inside `CommandValueResponse` and `CommandTokenResponse` retain their existing nullability.
+
+#### Configuration, retry and metrics
+
+The ordering is:
+
+```text
+logical invocation metrics
+  external validators, then message.validate() (once)
+  attempt loop
+    handler.verify() (every attempt)
+    handler.handle()
+    response contract check
+```
+
+`OrchestrationConfiguration` copies the validator list and retains one metrics collaborator.
+`defaults()` discovers validators with `ServiceLoader` and snapshots `CqsMetricsSupport` at wiring
+time. Without a metrics provider it uses `NoCqsMetrics`. Discovery is not repeated while processing.
+With the optional Jakarta Validation API on the classpath, supply a Jakarta implementation as well.
+Custom validators, metrics and retry predicates must be thread-safe; the application owns their
+lifetime and resources. Close discovered `JakartaMessageValidator` instances at application shutdown,
+after processors stop; their validator factories stay open for the entire validator lifetime.
+Message validation remains mandatory even with an empty external validator list.
+
+Implement `CqsMetrics` in the application to connect its chosen metrics backend. Core supplies the
+metrics contracts, no-op implementation and service discovery; backend dependencies and configuration
+belong to the application. Share an application-provided metrics instance through configuration:
+
+```java
+var configuration = new OrchestrationConfiguration(
+    MessageValidatorFactory.discoverValidators(),
+    applicationMetrics);
+var renamePolicy = new RetryPolicy(3, cause -> cause instanceof TransientStorageException);
+var rename = CommandProcessorFactory.create(new RenameAccountHandler(), configuration, renamePolicy);
+var other = CommandProcessorFactory.create(otherHandler, configuration, RetryPolicy.noRetry());
+```
+
+Factories also accept a handler-specific `RetryExecutor` in place of `RetryPolicy`.
+`RetryPolicy` implements that interface, so existing policy-based calls retain their behavior.
+An application can implement `execute(Class<?>, Function<Integer, T>)` using its preferred retry
+library, including Spring Retry, and pass it only to the relevant handler's factory. Retry counts
+start at zero. The executor must call the attempt synchronously and propagate its final failure
+on exhaustion. The attempt includes verification and handling; validation and logical-invocation
+metrics remain outside retries. Non-null response checks run after execution, so a null response
+is not retried. Classify CQS failures and their causes explicitly in custom adapters.
+
+Alternatively, the application can supply metrics through `ServiceLoader`. In the application project,
+create `src/main/resources/META-INF/services/eu.prismacapacity.cqs.core.metrics.CqsMetrics` containing
+the fully qualified provider class name:
+
+```text
+com.example.ApplicationMetrics
+```
+
+The provider must implement `CqsMetrics` and have a public no-argument constructor. The application
+owns its backend initialization and resource lifecycle; initialize any required shared infrastructure
+before first using `CqsMetricsSupport`. Then `OrchestrationConfiguration.defaults()` uses the
+discovered metrics without additional wiring. Register one provider: discovery selects the first
+available provider. Invalid registrations fail discovery rather than silently disabling metrics.
+Core deliberately ships no metrics service registration, so its no-op fallback cannot shadow an
+application provider. For dependency-injected metrics, call `CqsMetricsSupport.setCqsMetrics(metrics)`
+before creating default configurations, or pass metrics directly to `OrchestrationConfiguration`.
+
+`TransientStorageException` above represents an application exception. A retry policy has a positive
+maximum attempt count, including the initial attempt, and a predicate selecting verification or handling failures.
+Only opt in for operations that can safely repeat. Attempts run immediately without backoff.
+There are no annotation overrides or global retry policies. The factories use explicit per-handler policies.
+
+Validation failures terminate immediately, including validation exceptions thrown during verification
+or handling. Response-contract failures also terminate without consulting the predicate. Verification
+and handling failures are eligible when the predicate selects them; a failed verification skips handling
+and the next attempt starts with verification again. Failures are wrapped once in the appropriate phase
+exception; existing phase exceptions are preserved. The predicate receives the underlying business cause
+after unwrapping verification and handling exceptions, or the phase exception itself if it has no cause.
+Errors are never retried. Exhaustion rethrows the last phase exception without an additional wrapper. A predicate that throws terminates
+the invocation with its own exception.
+
+A thrown `TimeoutException` becomes `QueryTimeoutException`; an existing `QueryTimeoutException` is
+preserved. Query timeouts are eligible only when the configured predicate selects their business cause.
+The timeout counter records each timed-out handling attempt, even if a later attempt succeeds.
+Timers cover one complete logical invocation, including validation, verification, retries and failure,
+using the underlying handler class name. The retained metrics `retryCount` argument is always zero
+for this logical timer; it is not an attempt counter. No separate attempt timers are emitted.
+Metrics implementations must invoke the supplied callback exactly once and propagate its result or
+exception; metrics and retry predicates must not throw during normal use.
+
+#### External adapters
+
+Framework adapters can call `CommandOrchestrationSupport.orchestrate` or
+`QueryOrchestrationSupport.orchestrate` with the message, underlying handler class,
+verification callback, business invocation callback, configuration and retry policy.
+The command adapter also supplies the typed null-response policy.
+An AOP adapter should invoke its target continuation through the business callback for each attempt,
+avoiding recursive proxy calls or wrapping another processor that would duplicate orchestration.
+See [spring-aop-example](spring-aop-example/README.md) for a demo client that supplies its own
+Spring AOP wiring. Its caller invokes command and query handlers directly.
 
 ## Migration
 
-TODO
+* The bundled metrics backend adapter is removed. Supply an application-owned `CqsMetrics`
+  implementation and manage any backend dependencies in the application project.
+* Move custom handler `validate` checks into the message's `validate()` or an external
+  `MessageValidator<Message>`. `QueryHandler.validate` and legacy handler validation hooks are removed.
+* The four `Abstract*Handler` classes are removed. Implement `CommandHandler`, `TokenCommandHandler`,
+  `RespondingCommandHandler` or `QueryHandler` directly, keeping the mandatory `verify()` method.
+  Rename `doHandle()` to public `handle()` and put business execution there.
+  Use a processor to obtain validation, verification, retry and metrics.
+* Replace abstract-handler retry/metrics fields and global `RetrySupport` usage with explicit
+  `RetryPolicy` and shared `OrchestrationConfiguration`. The old retry SPI remains available for
+  source compatibility but is not used by the new pipeline. `CqsMetricsSupport` remains a default
+  metrics discovery/configuration mechanism; changing it affects subsequently created configurations.
+* Validation now runs once before retry, and verification runs before every handling attempt.
+  Metrics now describe logical invocations rather than individual attempts.
+* The orchestration support methods now accept handler identity, verification/invocation callbacks,
+  configuration and retry policy; remove handler validation callbacks at custom adapter call sites.
+  Superseded `cmd.scratchpad` prototypes have been removed.

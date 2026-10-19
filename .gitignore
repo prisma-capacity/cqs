@@ -19,3 +19,7 @@ buildNumber.properties
 # Intellij
 .idea
 /.junie/
+
+# Codex
+.codex/
+.codexignore

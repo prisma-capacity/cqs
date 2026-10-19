@@ -18,6 +18,12 @@ package eu.prismacapacity.cqs.core.retry;
 import java.util.function.Function;
 import lombok.NonNull;
 
+/**
+ * Handler-specific execution strategy. Invoke the callback synchronously at least once, passing a
+ * zero-based retry count. On exhaustion propagate the final failure; do not return a fallback. The
+ * callback performs verification and handling; validation runs outside this boundary.
+ * Implementations shared between callers must be thread-safe.
+ */
 public interface RetryExecutor {
   <T> T execute(@NonNull Class<?> handler, @NonNull Function<Integer, T> fn);
 }

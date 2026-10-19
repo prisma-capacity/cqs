@@ -16,6 +16,7 @@
 package eu.prismacapacity.cqs.core.validator.jakarta;
 
 import eu.prismacapacity.cqs.core.validator.MessageValidatorProvider;
+import jakarta.validation.NoProviderFoundException;
 import java.util.Optional;
 import lombok.NonNull;
 
@@ -28,7 +29,8 @@ public class JakartaMessageValidatorProvider
     try {
       Class.forName("jakarta.validation.Validator");
       return Optional.of(new JakartaMessageValidator());
-    } catch (ClassNotFoundException ignored) {
+    } catch (NoProviderFoundException | ClassNotFoundException ignored) {
+      // TODO log?
     }
     return Optional.empty();
   }

@@ -16,9 +16,10 @@
 package eu.prismacapacity.cqs.core.metrics;
 
 import java.util.function.Supplier;
+import lombok.NonNull;
 
 public interface QueryMetrics {
-  <T> T timedQuery(String queryHandlerClass, int retryCount, Supplier<T> fn);
+  <T> T timedQuery(@NonNull String queryHandlerClass, int retryCount, @NonNull Supplier<T> fn);
 
   void logTimeout();
 }

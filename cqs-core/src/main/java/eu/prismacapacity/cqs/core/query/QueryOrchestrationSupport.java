@@ -15,7 +15,11 @@
  */
 package eu.prismacapacity.cqs.core.query;
 
-import eu.prismacapacity.cqs.core.validator.MessageValidatorFactory;
+import eu.prismacapacity.cqs.core.OrchestrationConfiguration;
+import eu.prismacapacity.cqs.core.cmd.CommandValidationException;
+import eu.prismacapacity.cqs.core.cmd.CommandVerificationException;
+import eu.prismacapacity.cqs.core.retry.RetryExecutor;
+import eu.prismacapacity.cqs.core.retry.RetryPolicy;
 import java.util.concurrent.TimeoutException;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
@@ -24,64 +28,87 @@ import lombok.experimental.UtilityClass;
 public class QueryOrchestrationSupport {
 
   public <Q extends Query, T> T orchestrate(
-      @NonNull Q query,
-      @NonNull QueryStep<Q> validateStep,
+      @NonNull Q message,
+      @NonNull Class<?> handlerClass,
       @NonNull QueryStep<Q> verifyStep,
       @NonNull QueryInvocation<Q, T> handleStep,
-      @NonNull Runnable timeoutHook) {
-    try {
-      for (var v : MessageValidatorFactory.discoverValidators()) {
-        v.validate(query);
-      }
-    } catch (Throwable e) {
-      throw new QueryValidationException(e);
-    }
+      @NonNull OrchestrationConfiguration configuration,
+      @NonNull RetryPolicy policy) {
+    return orchestrate(
+        message, handlerClass, verifyStep, handleStep, configuration, (RetryExecutor) policy);
+  }
 
+  public <Q extends Query, T> T orchestrate(
+      @NonNull Q message,
+      @NonNull Class<?> handlerClass,
+      @NonNull QueryStep<Q> verifyStep,
+      @NonNull QueryInvocation<Q, T> handleStep,
+      @NonNull OrchestrationConfiguration configuration,
+      @NonNull RetryExecutor executor) {
     try {
-      validateStep.perform(query);
+      for (var validator : configuration.validators()) {
+        validator.validate(message);
+      }
+      message.validate();
     } catch (QueryValidationException e) {
       throw e;
     } catch (Throwable e) {
       throw new QueryValidationException(e);
     }
 
-    try {
-      verifyStep.perform(query);
-    } catch (QueryVerificationException e) {
-      throw e;
-    } catch (Throwable e) {
-      throw new QueryVerificationException(e);
-    }
+    T response =
+        executor.execute(
+            handlerClass,
+            retryCount ->
+                configuration
+                    .metrics()
+                    .timedQuery(
+                        handlerClass.getName(),
+                        retryCount,
+                        () -> {
+                          try {
+                            verifyStep.perform(message);
+                          } catch (Throwable e) {
+                            throw e instanceof QueryVerificationException
+                                ? (QueryVerificationException) e
+                                : new QueryVerificationException(e);
+                          }
 
-    T result;
-    try {
-      result = handleStep.invoke(query);
-    } catch (TimeoutException e) {
-      timeoutHook.run();
-      throw new QueryTimeoutException(e);
-    } catch (QueryTimeoutException e) {
-      timeoutHook.run();
-      throw e;
-    } catch (QueryHandlingException e) {
-      throw e;
-    } catch (Throwable e) {
-      throw new QueryHandlingException(e);
-    }
+                          T result;
+                          try {
+                            result = handleStep.invoke(message);
+                          } catch (CommandValidationException
+                              | QueryValidationException
+                              | CommandVerificationException
+                              | QueryVerificationException e) {
+                            throw e;
+                          } catch (TimeoutException e) {
+                            configuration.metrics().logTimeout();
+                            throw new QueryTimeoutException(e);
+                          } catch (QueryTimeoutException e) {
+                            configuration.metrics().logTimeout();
+                            throw e;
+                          } catch (Throwable e) {
+                            throw e instanceof QueryHandlingException
+                                ? (QueryHandlingException) e
+                                : new QueryHandlingException(e);
+                          }
 
-    if (result == null) {
-      throw new QueryHandlingException("Returned object must not be null");
+                          return result;
+                        }));
+    if (response == null) {
+      throw new QueryHandlingException("Response must not be null.");
     }
-
-    return result;
+    return response;
   }
 
   @FunctionalInterface
   public interface QueryStep<Q extends Query> {
-    void perform(@NonNull Q query) throws Throwable;
+    void perform(@NonNull Q message) throws Throwable;
   }
 
   @FunctionalInterface
   public interface QueryInvocation<Q extends Query, T> {
-    T invoke(@NonNull Q query) throws Throwable;
+    T invoke(@NonNull Q message) throws Throwable;
   }
 }

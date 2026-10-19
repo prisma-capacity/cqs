@@ -20,24 +20,25 @@ import java.util.concurrent.atomic.AtomicReference;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 
+/** Discovers application-provided metrics once, falling back to no-op metrics when none exist. */
 @UtilityClass
 public class CqsMetricsSupport {
   private static final AtomicReference<CqsMetrics> cqsMetrics =
-      new AtomicReference<>(loadExecutor());
+      new AtomicReference<>(loadMetrics());
 
   @NonNull
   public CqsMetrics getCqsMetrics() {
     return cqsMetrics.get();
   }
 
-  // might be useful for fw impl without service loader
-  public void setCqsMetrics(@NonNull CqsMetrics cst) {
-    cqsMetrics.set(cst);
+  /** Overrides discovery for subsequently created default orchestration configurations. */
+  public void setCqsMetrics(@NonNull CqsMetrics metrics) {
+    cqsMetrics.set(metrics);
   }
 
-  // allows using service loader to get the RetryExecutor (like the validator approach)
+  // The application supplies the META-INF/services entry for CqsMetrics.
   @NonNull
-  private CqsMetrics loadExecutor() {
+  private CqsMetrics loadMetrics() {
     return ServiceLoader.load(CqsMetrics.class).findFirst().orElseGet(NoCqsMetrics::new);
   }
 }
