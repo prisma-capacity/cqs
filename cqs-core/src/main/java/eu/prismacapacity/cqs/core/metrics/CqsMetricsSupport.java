@@ -23,8 +23,7 @@ import lombok.experimental.UtilityClass;
 /** Discovers application-provided metrics once, falling back to no-op metrics when none exist. */
 @UtilityClass
 public class CqsMetricsSupport {
-  private static final AtomicReference<CqsMetrics> cqsMetrics =
-      new AtomicReference<>(loadMetrics());
+  private final AtomicReference<CqsMetrics> cqsMetrics = new AtomicReference<>(loadMetrics());
 
   @NonNull
   public CqsMetrics getCqsMetrics() {

@@ -19,20 +19,13 @@ import eu.prismacapacity.cqs.core.OrchestrationConfiguration;
 import eu.prismacapacity.cqs.core.query.Query;
 import eu.prismacapacity.cqs.core.query.QueryHandler;
 import eu.prismacapacity.cqs.core.query.QueryOrchestrationSupport;
+import eu.prismacapacity.cqs.core.retry.NoRetryExecutor;
 import eu.prismacapacity.cqs.core.retry.RetryExecutor;
-import eu.prismacapacity.cqs.core.retry.RetryPolicy;
 import lombok.NonNull;
 
 public interface QueryProcessorFactory {
   static <Q extends Query, T> QueryProcessor<Q, T> create(@NonNull QueryHandler<Q, T> handler) {
-    return create(handler, OrchestrationConfiguration.defaults(), RetryPolicy.noRetry());
-  }
-
-  static <Q extends Query, T> QueryProcessor<Q, T> create(
-      @NonNull QueryHandler<Q, T> handler,
-      @NonNull OrchestrationConfiguration configuration,
-      @NonNull RetryPolicy policy) {
-    return create(handler, configuration, (RetryExecutor) policy);
+    return create(handler, OrchestrationConfiguration.defaults(), new NoRetryExecutor());
   }
 
   static <Q extends Query, T> QueryProcessor<Q, T> create(

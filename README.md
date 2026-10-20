@@ -32,8 +32,9 @@ principle. However, there is a bit of fine print here that makes it worthwhile t
 ### Usage
 
 Java 17 is required. Use `eu.prismacapacity:cqs-core:0.0.1-SNAPSHOT` as the runtime dependency.
-`cqs` is a parent POM. Core has no Spring dependencies. The separate `spring-aop-example` module
-demonstrates client-owned AOP wiring and direct calls to managed handlers.
+`cqs` is a parent POM. Core has no Spring dependencies. Spring applications can use
+[cqs-aop](cqs-aop/README.md) and import `CqsAopConfiguration` to enable handler orchestration.
+The separate `spring-aop-example` module demonstrates direct calls to managed handlers.
 
 #### Plain Java
 
@@ -44,7 +45,8 @@ apply orchestration:
 ```java
 import eu.prismacapacity.cqs.core.OrchestrationConfiguration;
 import eu.prismacapacity.cqs.core.cmd.*;
-import eu.prismacapacity.cqs.core.retry.RetryPolicy;
+import eu.prismacapacity.cqs.core.retry.NoRetryExecutor;
+import eu.prismacapacity.cqs.core.retry.SimpleRetryExecutor;
 
 record RenameAccount(String name) implements Command {
   @Override
@@ -71,7 +73,7 @@ class RenameAccountHandler implements CommandHandler<RenameAccount> {
 var configuration = OrchestrationConfiguration.defaults();
 var handler = new RenameAccountHandler();
 CommandProcessor<RenameAccount> processor = CommandProcessorFactory.create(
-    handler, configuration, RetryPolicy.noRetry());
+    handler, configuration, new NoRetryExecutor());
 processor.process(new RenameAccount("Example"));
 ```
 
@@ -119,13 +121,13 @@ belong to the application. Share an application-provided metrics instance throug
 var configuration = new OrchestrationConfiguration(
     MessageValidatorFactory.discoverValidators(),
     applicationMetrics);
-var renamePolicy = new RetryPolicy(3, cause -> cause instanceof TransientStorageException);
-var rename = CommandProcessorFactory.create(new RenameAccountHandler(), configuration, renamePolicy);
-var other = CommandProcessorFactory.create(otherHandler, configuration, RetryPolicy.noRetry());
+var renameExecutor = new SimpleRetryExecutor(3, cause -> cause instanceof TransientStorageException);
+var rename = CommandProcessorFactory.create(new RenameAccountHandler(), configuration, renameExecutor);
+var other = CommandProcessorFactory.create(otherHandler, configuration, new NoRetryExecutor());
 ```
 
-Factories also accept a handler-specific `RetryExecutor` in place of `RetryPolicy`.
-`RetryPolicy` implements that interface, so existing policy-based calls retain their behavior.
+Factories accept a handler-specific `RetryExecutor`. `SimpleRetryExecutor` provides bounded retries
+without backoff; `NoRetryExecutor` executes once and is the factory default.
 An application can implement `execute(Class<?>, Function<Integer, T>)` using its preferred retry
 library, including Spring Retry, and pass it only to the relevant handler's factory. Retry counts
 start at zero. The executor must call the attempt synchronously and propagate its final failure
@@ -177,12 +179,13 @@ exception; metrics and retry predicates must not throw during normal use.
 
 Framework adapters can call `CommandOrchestrationSupport.orchestrate` or
 `QueryOrchestrationSupport.orchestrate` with the message, underlying handler class,
-verification callback, business invocation callback, configuration and retry policy.
+verification callback, business invocation callback, configuration and retry executor.
 The command adapter also supplies the typed null-response policy.
 An AOP adapter should invoke its target continuation through the business callback for each attempt,
 avoiding recursive proxy calls or wrapping another processor that would duplicate orchestration.
-See [spring-aop-example](spring-aop-example/README.md) for a demo client that supplies its own
-Spring AOP wiring. Its caller invokes command and query handlers directly.
+The [cqs-aop](cqs-aop/README.md) module supplies reusable Spring AOP wiring.
+See [spring-aop-example](spring-aop-example/README.md) for a demo client that imports it
+and invokes command and query handlers directly.
 
 ## Migration
 
@@ -195,11 +198,13 @@ Spring AOP wiring. Its caller invokes command and query handlers directly.
   Rename `doHandle()` to public `handle()` and put business execution there.
   Use a processor to obtain validation, verification, retry and metrics.
 * Replace abstract-handler retry/metrics fields and global `RetrySupport` usage with explicit
-  `RetryPolicy` and shared `OrchestrationConfiguration`. The old retry SPI remains available for
+  `RetryExecutor` and shared `OrchestrationConfiguration`. The old retry SPI remains available for
   source compatibility but is not used by the new pipeline. `CqsMetricsSupport` remains a default
   metrics discovery/configuration mechanism; changing it affects subsequently created configurations.
+* Replace `RetryPolicy` with `SimpleRetryExecutor`, or use `NoRetryExecutor` instead of
+  `RetryPolicy.noRetry()`. Factory and orchestration methods accept `RetryExecutor`.
 * Validation now runs once before retry, and verification runs before every handling attempt.
   Metrics now describe logical invocations rather than individual attempts.
 * The orchestration support methods now accept handler identity, verification/invocation callbacks,
-  configuration and retry policy; remove handler validation callbacks at custom adapter call sites.
+  configuration and retry executor; remove handler validation callbacks at custom adapter call sites.
   Superseded `cmd.scratchpad` prototypes have been removed.

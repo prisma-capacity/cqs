@@ -22,16 +22,10 @@ import eu.prismacapacity.cqs.core.cmd.CommandValidationException;
 import eu.prismacapacity.cqs.core.cmd.CommandVerificationException;
 import eu.prismacapacity.cqs.core.query.QueryValidationException;
 import eu.prismacapacity.cqs.core.query.QueryVerificationException;
-import eu.prismacapacity.cqs.core.retry.RetryExecutor;
-import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.retry.support.RetryTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 
 /** Exercises the example's real Spring Boot wiring, AOP advice, handlers and repository. */
@@ -175,27 +169,4 @@ public class HandlerOrchestrationIntegrationTest {
   }
 
   @Autowired private SingleAttemptEmailHandler singleAttemptEmailHandler;
-
-  @TestConfiguration(proxyBeanMethods = false)
-  static class EmailConfiguration {
-    @Bean
-    Map<Class<?>, RetryExecutor> handlerRetryExecutors() {
-      var template =
-          RetryTemplate.builder()
-              .maxAttempts(3)
-              .retryOn(
-                  failure ->
-                      failure instanceof CommandHandlingException
-                          && failure.getCause() instanceof EmailServiceUnavailableException)
-              .build();
-      RetryExecutor executor =
-          new RetryExecutor() {
-            @Override
-            public <T> T execute(Class<?> handler, Function<Integer, T> attempt) {
-              return template.execute(context -> attempt.apply(context.getRetryCount()));
-            }
-          };
-      return Map.of(SendWelcomeEmailHandler.class, executor);
-    }
-  }
 }

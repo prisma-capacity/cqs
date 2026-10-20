@@ -20,7 +20,7 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-/** Uses the same demo gateway without a retry executor binding. */
+/** Uses the same demo gateway without a retry annotation. */
 @Component
 @RequiredArgsConstructor
 public class SingleAttemptEmailHandler implements CommandHandler<SendWelcomeEmail> {

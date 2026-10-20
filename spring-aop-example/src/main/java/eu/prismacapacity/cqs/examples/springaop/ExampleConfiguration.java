@@ -15,20 +15,19 @@
  */
 package eu.prismacapacity.cqs.examples.springaop;
 
+import eu.prismacapacity.cqs.aop.CqsAopConfiguration;
 import eu.prismacapacity.cqs.core.OrchestrationConfiguration;
 import eu.prismacapacity.cqs.core.metrics.CqsMetrics;
-import eu.prismacapacity.cqs.core.retry.RetryExecutor;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.List;
-import java.util.Map;
 import lombok.NonNull;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 
 @Configuration(proxyBeanMethods = false)
+@Import(CqsAopConfiguration.class)
 public class ExampleConfiguration {
   @Bean
   public MeterRegistry meterRegistry() {
@@ -39,14 +38,5 @@ public class ExampleConfiguration {
   public OrchestrationConfiguration orchestrationConfiguration(@NonNull CqsMetrics metrics) {
     // All handlers share metrics; message validation remains mandatory.
     return new OrchestrationConfiguration(List.of(), metrics);
-  }
-
-  @Bean
-  public HandlerOrchestrationAspect handlerOrchestrationAspect(
-      OrchestrationConfiguration configuration,
-      @Qualifier("handlerRetryExecutors") ObjectProvider<Map<Class<?>, RetryExecutor>> executors) {
-    // Only handlers requiring retries need an entry keyed by their implementation class.
-    // Metrics and validators are shared application-wide; other handlers default to no retry.
-    return new HandlerOrchestrationAspect(configuration, executors.getIfAvailable(Map::of));
   }
 }

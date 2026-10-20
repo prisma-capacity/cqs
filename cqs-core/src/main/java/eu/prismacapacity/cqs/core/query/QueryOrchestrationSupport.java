@@ -19,24 +19,12 @@ import eu.prismacapacity.cqs.core.OrchestrationConfiguration;
 import eu.prismacapacity.cqs.core.cmd.CommandValidationException;
 import eu.prismacapacity.cqs.core.cmd.CommandVerificationException;
 import eu.prismacapacity.cqs.core.retry.RetryExecutor;
-import eu.prismacapacity.cqs.core.retry.RetryPolicy;
 import java.util.concurrent.TimeoutException;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class QueryOrchestrationSupport {
-
-  public <Q extends Query, T> T orchestrate(
-      @NonNull Q message,
-      @NonNull Class<?> handlerClass,
-      @NonNull QueryStep<Q> verifyStep,
-      @NonNull QueryInvocation<Q, T> handleStep,
-      @NonNull OrchestrationConfiguration configuration,
-      @NonNull RetryPolicy policy) {
-    return orchestrate(
-        message, handlerClass, verifyStep, handleStep, configuration, (RetryExecutor) policy);
-  }
 
   public <Q extends Query, T> T orchestrate(
       @NonNull Q message,

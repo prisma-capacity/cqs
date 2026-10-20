@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package eu.prismacapacity.cqs.examples.springaop;
+package eu.prismacapacity.cqs.aop;
 
 import eu.prismacapacity.cqs.core.OrchestrationConfiguration;
 import eu.prismacapacity.cqs.core.cmd.Command;
@@ -25,26 +25,22 @@ import eu.prismacapacity.cqs.core.query.QueryOrchestrationSupport;
 import eu.prismacapacity.cqs.core.retry.NoRetryExecutor;
 import eu.prismacapacity.cqs.core.retry.RetryExecutor;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.aop.support.AopUtils;
 
-/** Client-owned wiring for all CQS handler implementations; orchestration remains in core. */
+/** Spring AOP adapter for CQS handler implementations; orchestration remains in core. */
 @Aspect
+@RequiredArgsConstructor
 public class HandlerOrchestrationAspect {
-  private final OrchestrationConfiguration configuration;
-  private final Map<Class<?>, RetryExecutor> executors;
+  @NonNull private final OrchestrationConfiguration configuration;
+  private final Map<Class<?>, RetryExecutor> annotationExecutors = new ConcurrentHashMap<>();
   private final RetryExecutor defaultExecutor = new NoRetryExecutor();
-
-  public HandlerOrchestrationAspect(
-      @NonNull OrchestrationConfiguration configuration,
-      @NonNull Map<Class<?>, RetryExecutor> executors) {
-    this.configuration = configuration;
-    this.executors = Map.copyOf(executors);
-  }
 
   @Around(
       value =
@@ -88,6 +84,13 @@ public class HandlerOrchestrationAspect {
   }
 
   private RetryExecutor executorFor(Class<?> handlerClass) {
-    return executors.getOrDefault(handlerClass, defaultExecutor);
+    return annotationExecutors.computeIfAbsent(
+        handlerClass,
+        type -> {
+          var retryConfiguration = type.getAnnotation(RetryConfiguration.class);
+          return retryConfiguration == null
+              ? defaultExecutor
+              : new AnnotationRetryExecutor(retryConfiguration);
+        });
   }
 }

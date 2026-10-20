@@ -16,14 +16,14 @@
 package eu.prismacapacity.cqs.core.cmd;
 
 import eu.prismacapacity.cqs.core.OrchestrationConfiguration;
+import eu.prismacapacity.cqs.core.retry.NoRetryExecutor;
 import eu.prismacapacity.cqs.core.retry.RetryExecutor;
-import eu.prismacapacity.cqs.core.retry.RetryPolicy;
 import lombok.NonNull;
 
 public interface CommandProcessorFactory {
 
   static <C extends Command> CommandProcessor<C> create(@NonNull CommandHandler<C> handler) {
-    return create(handler, OrchestrationConfiguration.defaults(), RetryPolicy.noRetry());
+    return create(handler, OrchestrationConfiguration.defaults(), new NoRetryExecutor());
   }
 
   static <C extends Command> CommandProcessor<C> create(
@@ -52,7 +52,7 @@ public interface CommandProcessorFactory {
 
   static <C extends Command, R> RespondingCommandProcessor<C, R> create(
       @NonNull RespondingCommandHandler<C, R> handler) {
-    return create(handler, OrchestrationConfiguration.defaults(), RetryPolicy.noRetry());
+    return create(handler, OrchestrationConfiguration.defaults(), new NoRetryExecutor());
   }
 
   static <C extends Command, R> RespondingCommandProcessor<C, R> create(
@@ -72,7 +72,7 @@ public interface CommandProcessorFactory {
 
   static <C extends Command> TokenCommandProcessor<C> create(
       @NonNull TokenCommandHandler<C> handler) {
-    return create(handler, OrchestrationConfiguration.defaults(), RetryPolicy.noRetry());
+    return create(handler, OrchestrationConfiguration.defaults(), new NoRetryExecutor());
   }
 
   static <C extends Command> TokenCommandProcessor<C> create(

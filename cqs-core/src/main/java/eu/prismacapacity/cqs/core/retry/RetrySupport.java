@@ -22,8 +22,7 @@ import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class RetrySupport {
-  private static final AtomicReference<RetryExecutor> executor =
-      new AtomicReference<>(loadExecutor());
+  private final AtomicReference<RetryExecutor> executor = new AtomicReference<>(loadExecutor());
 
   @NonNull
   public RetryExecutor getExecutor() {

@@ -26,7 +26,7 @@ import eu.prismacapacity.cqs.core.query.Query;
 import eu.prismacapacity.cqs.core.query.QueryHandler;
 import eu.prismacapacity.cqs.core.query.QueryValidationException;
 import eu.prismacapacity.cqs.core.query.QueryVerificationException;
-import eu.prismacapacity.cqs.core.retry.RetryPolicy;
+import eu.prismacapacity.cqs.core.retry.SimpleRetryExecutor;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -203,8 +203,8 @@ public class VanillaJavaClientTest {
 
   private static final class CommandProcessorWithRetryFactory implements CommandProcessorFactory {
     static <C extends Command> CommandProcessor<C> create(@NonNull CommandHandler<C> handler) {
-      var retryPolicy =
-          new RetryPolicy(5, cause -> cause instanceof TemporarilyUnavailableException);
+      var retryExecutor =
+          new SimpleRetryExecutor(5, cause -> cause instanceof TemporarilyUnavailableException);
       return command ->
           CommandOrchestrationSupport.orchestrate(
               command,
@@ -213,7 +213,7 @@ public class VanillaJavaClientTest {
               CommandProcessorFactory.nullReturningInvocation(handler),
               true,
               OrchestrationConfiguration.defaults(),
-              retryPolicy);
+              retryExecutor);
     }
   }
 }

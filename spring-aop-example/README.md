@@ -1,7 +1,7 @@
 # Spring AOP client example
 
-This module is a Spring Boot demo application using `cqs-core`, with its own Spring AOP wiring.
-Spring dependencies and the aspect live here; core remains framework-independent.
+This module is a Spring Boot demo application using [cqs-aop](../cqs-aop/README.md).
+The reusable aspect and its Spring configuration live in `cqs-aop`; core remains framework-independent.
 
 `SpringAopExample` receives managed handler references through constructor injection;
 its `main` method calls them directly:
@@ -13,7 +13,8 @@ System.out.println(example.findAccountHandler.handle(new FindAccount(1)));
 
 `SpringAopExample` uses `@SpringBootApplication` to discover the `@Component` handlers and
 in-memory repository. Boot enables AOP class proxies through `spring-boot-starter-aop`.
-`ExampleConfiguration` supplies the shared orchestration configuration and the policy-configured aspect. The aspect matches public `handle` methods on implementations of
+`ExampleConfiguration` imports `CqsAopConfiguration` and supplies the shared orchestration configuration.
+The imported configuration registers the policy-configured aspect. The aspect matches public `handle` methods on implementations of
 `CommandHandler`, `TokenCommandHandler`, `RespondingCommandHandler`, and `QueryHandler`.
 New handler implementations need no additional advice. It delegates to the existing command/query orchestrators,
 using the underlying target's `verify` method and `ProceedingJoinPoint.proceed()` as the business
@@ -23,21 +24,15 @@ the same advice. No processor factory or second orchestration pipeline is involv
 Message validation runs once before attempts. Verification runs before each handling attempt.
 The void command allows a null response; the query must return an account. Phase exceptions,
 retry eligibility and response checks are supplied by core. Both handlers default to no retry;
-provide an optional bean named `handlerRetryExecutors` containing executor overrides keyed by the exact
-handler implementation class (not its proxy class). For example:
+annotate a handler class with `eu.prismacapacity.cqs.aop.RetryConfiguration` to enable retries.
+For example:
 
 ```java
-@Bean
-Map<Class<?>, RetryExecutor> handlerRetryExecutors() {
-  return Map.of(FindAccountHandler.class,
-      new RetryPolicy(3, failure -> failure instanceof IOException));
-}
+@RetryConfiguration(maxAttempts = 3, interval = 20)
 ```
 
-This illustrative override requires imports for core `RetryExecutor`, `RetryPolicy`, and
-`java.io.IOException`; all
-unlisted handlers use no retry. Policies are class-scoped, so beans of the same implementation
-class share the override. One shared
+Handlers without the annotation use no retry. Policies are class-scoped, so beans of the same
+implementation class share the configuration. One shared
 `OrchestrationConfiguration` uses no external validators and the shared `MicrometerCqsMetrics`
 component; message validation still runs.
 
@@ -72,7 +67,7 @@ registry when exporting metrics; the CQS adapter and handlers remain the same.
 
 ## Run
 
-Compile the example and its core dependency from the repository root:
+Compile the example and its CQS dependencies from the repository root:
 
 ```sh
 mvn -pl spring-aop-example -am -Dmaven.test.skip=true compile
@@ -95,13 +90,14 @@ demo account is not created during test startup.
 
 The welcome-email command, handlers, stub gateway, and transient exception live alongside the
 other example classes in main sources and are discovered through component scanning. The gateway
-exposes failure controls and counters for the single-threaded demo. The integration test selects
-a Spring `RetryTemplate` for `SendWelcomeEmailHandler` through the executor map.
-Only its transient email-service failures are retried (three attempts maximum); existing handlers
+exposes failure controls and counters for the single-threaded demo. `SendWelcomeEmailHandler`
+uses `@RetryConfiguration` to select a Spring `RetryTemplate` with three attempts maximum,
+excluding command/query validation exceptions and command verification exceptions.
+Transient email-service failures are retried; existing handlers
 retain their default single-attempt behavior. The adapter supplies zero-based retry counts to the
 core callback. Validation runs once, verification runs per attempt, and exhaustion retains the CQS
-handling exception. Spring Retry is a test-scoped dependency, with no retry annotation or second
-retry aspect. Cases cover recovery, exhaustion, validation/verification failures, and an unconfigured
+handling exception. Spring Retry is supplied by `cqs-aop`, with no second retry aspect.
+Cases cover recovery, exhaustion, validation/verification failures, and an unannotated
 handler throwing the same transient exception without retrying.
 
 ```sh

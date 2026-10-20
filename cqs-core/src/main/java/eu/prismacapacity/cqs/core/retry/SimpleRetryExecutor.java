@@ -23,17 +23,15 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import lombok.NonNull;
 
-/** Immutable handler policy. The predicate receives the business cause, when available. */
-public record RetryPolicy(int maxAttempts, @NonNull Predicate<Throwable> retryOn)
+/**
+ * Retries synchronously without backoff. The predicate receives the business cause, when available.
+ */
+public record SimpleRetryExecutor(int maxAttempts, @NonNull Predicate<Throwable> retryOn)
     implements RetryExecutor {
-  public RetryPolicy {
+  public SimpleRetryExecutor {
     if (maxAttempts < 1) {
       throw new IllegalArgumentException("maxAttempts must be at least one");
     }
-  }
-
-  public static RetryPolicy noRetry() {
-    return new RetryPolicy(1, failure -> false);
   }
 
   @Override
@@ -50,7 +48,7 @@ public record RetryPolicy(int maxAttempts, @NonNull Predicate<Throwable> retryOn
   }
 
   /** Returns whether to stop retrying. attempt is one-based; Errors are never eligible. */
-  public boolean shouldNotRetry(@NonNull Throwable failure, int attempt) {
+  private boolean shouldNotRetry(@NonNull Throwable failure, int attempt) {
     Throwable cause = failure;
     while ((cause instanceof CommandHandlingException || cause instanceof QueryHandlingException)
         && cause.getCause() != null

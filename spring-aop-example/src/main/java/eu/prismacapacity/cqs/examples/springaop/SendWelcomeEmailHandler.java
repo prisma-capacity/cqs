@@ -15,7 +15,11 @@
  */
 package eu.prismacapacity.cqs.examples.springaop;
 
+import eu.prismacapacity.cqs.aop.RetryConfiguration;
 import eu.prismacapacity.cqs.core.cmd.CommandHandler;
+import eu.prismacapacity.cqs.core.cmd.CommandValidationException;
+import eu.prismacapacity.cqs.core.cmd.CommandVerificationException;
+import eu.prismacapacity.cqs.core.query.QueryValidationException;
 import java.util.NoSuchElementException;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +28,12 @@ import org.springframework.stereotype.Component;
 /** Sends a welcome email through the demo gateway after checking the account exists. */
 @Component
 @RequiredArgsConstructor
+@RetryConfiguration(
+    notRetryOn = {
+      CommandValidationException.class,
+      QueryValidationException.class,
+      CommandVerificationException.class // just an example, by default this is retried
+    })
 public class SendWelcomeEmailHandler implements CommandHandler<SendWelcomeEmail> {
   @NonNull private final AccountRepository accounts;
   @NonNull private final EmailGateway emailGateway;

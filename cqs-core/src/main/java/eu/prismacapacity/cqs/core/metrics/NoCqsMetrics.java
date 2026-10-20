@@ -33,7 +33,5 @@ public class NoCqsMetrics implements CqsMetrics {
   }
 
   @Override
-  public void logTimeout() {
-    return;
-  }
+  public void logTimeout() {}
 }

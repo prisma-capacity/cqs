@@ -34,7 +34,7 @@ public class FindAccountHandler implements QueryHandler<FindAccount, Account> {
     }
   }
 
-  @org.springframework.lang.NonNull
+  @NonNull
   @Override
   public Account handle(@NonNull FindAccount query) {
     return accounts.find(query.id()).orElseThrow();
