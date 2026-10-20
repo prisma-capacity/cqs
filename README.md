@@ -4,6 +4,9 @@
 
 # Prisma CQS
 
+> [!NOTE]
+> Work in Progress: This project aims to refactor the legacy https://github.com/prisma-capacity/spring-cqs
+
 Simple abstractions we use to follow the CQS Principle in applications.
 
 ![Java CI](https://github.com/prisma-capacity/cqs/workflows/Java%20CI/badge.svg?branch=main)
@@ -189,22 +192,4 @@ and invokes command and query handlers directly.
 
 ## Migration
 
-* The bundled metrics backend adapter is removed. Supply an application-owned `CqsMetrics`
-  implementation and manage any backend dependencies in the application project.
-* Move custom handler `validate` checks into the message's `validate()` or an external
-  `MessageValidator<Message>`. `QueryHandler.validate` and legacy handler validation hooks are removed.
-* The four `Abstract*Handler` classes are removed. Implement `CommandHandler`, `TokenCommandHandler`,
-  `RespondingCommandHandler` or `QueryHandler` directly, keeping the mandatory `verify()` method.
-  Rename `doHandle()` to public `handle()` and put business execution there.
-  Use a processor to obtain validation, verification, retry and metrics.
-* Replace abstract-handler retry/metrics fields and global `RetrySupport` usage with explicit
-  `RetryExecutor` and shared `OrchestrationConfiguration`. The old retry SPI remains available for
-  source compatibility but is not used by the new pipeline. `CqsMetricsSupport` remains a default
-  metrics discovery/configuration mechanism; changing it affects subsequently created configurations.
-* Replace `RetryPolicy` with `SimpleRetryExecutor`, or use `NoRetryExecutor` instead of
-  `RetryPolicy.noRetry()`. Factory and orchestration methods accept `RetryExecutor`.
-* Validation now runs once before retry, and verification runs before every handling attempt.
-  Metrics now describe logical invocations rather than individual attempts.
-* The orchestration support methods now accept handler identity, verification/invocation callbacks,
-  configuration and retry executor; remove handler validation callbacks at custom adapter call sites.
-  Superseded `cmd.scratchpad` prototypes have been removed.
+TODO
