@@ -12,7 +12,7 @@
   <artifactId>cqs-spring-aop</artifactId>
   <description>Spring AOP orchestration for CQS handlers</description>
   <properties>
-    <spring-boot.version>3.5.14</spring-boot.version>
+    <spring-boot.version>3.5.16</spring-boot.version>
   </properties>
   <dependencyManagement>
     <dependencies>
