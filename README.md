@@ -36,7 +36,7 @@ principle. However, there is a bit of fine print here that makes it worthwhile t
 
 Java 17 is required. Use `eu.prismacapacity:cqs-core:0.0.1-SNAPSHOT` as the runtime dependency.
 `cqs` is a parent POM. Core has no Spring dependencies. Spring applications can use
-[cqs-aop](cqs-aop/README.md) and import `CqsAopConfiguration` to enable handler orchestration.
+[cqs-spring-aop](cqs-spring-aop/README.md) and import `CqsAopConfiguration` to enable handler orchestration.
 The separate `spring-aop-example` module demonstrates direct calls to managed handlers.
 
 #### Plain Java
@@ -186,7 +186,8 @@ verification callback, business invocation callback, configuration and retry exe
 The command adapter also supplies the typed null-response policy.
 An AOP adapter should invoke its target continuation through the business callback for each attempt,
 avoiding recursive proxy calls or wrapping another processor that would duplicate orchestration.
-The [cqs-aop](cqs-aop/README.md) module supplies reusable Spring AOP wiring.
+The [cqs-aop](cqs-aop/README.md) module supplies the framework-independent AspectJ adapter.
+The [cqs-spring-aop](cqs-spring-aop/README.md) module supplies Spring AOP wiring and Spring Retry.
 See [spring-aop-example](spring-aop-example/README.md) for a demo client that imports it
 and invokes command and query handlers directly.
 

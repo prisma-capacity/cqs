@@ -13,8 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package eu.prismacapacity.cqs.aop;
+package eu.prismacapacity.cqs.springaop;
 
+import eu.prismacapacity.cqs.aop.RetryConfiguration;
 import eu.prismacapacity.cqs.core.retry.RetryExecutor;
 import java.util.function.Function;
 import lombok.NonNull;

@@ -10,21 +10,7 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>cqs-aop</artifactId>
-  <description>Spring AOP orchestration for CQS handlers</description>
-  <properties>
-    <spring-boot.version>3.5.14</spring-boot.version>
-  </properties>
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-dependencies</artifactId>
-        <version>${spring-boot.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
+  <description>AspectJ orchestration for CQS handlers</description>
   <dependencies>
     <dependency>
       <groupId>eu.prismacapacity</groupId>
@@ -37,20 +23,9 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-context</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-aop</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.retry</groupId>
-      <artifactId>spring-retry</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.aspectj</groupId>
       <artifactId>aspectjweaver</artifactId>
+      <version>1.9.25.1</version>
     </dependency>
   </dependencies>
 </project>

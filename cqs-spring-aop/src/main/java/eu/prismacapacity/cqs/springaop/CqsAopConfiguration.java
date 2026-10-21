@@ -13,9 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package eu.prismacapacity.cqs.aop;
+package eu.prismacapacity.cqs.springaop;
 
+import eu.prismacapacity.cqs.aop.HandlerOrchestrationAspect;
+import eu.prismacapacity.cqs.aop.RetryConfiguration;
 import eu.prismacapacity.cqs.core.OrchestrationConfiguration;
+import eu.prismacapacity.cqs.core.retry.NoRetryExecutor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,6 +32,12 @@ public class CqsAopConfiguration {
   public HandlerOrchestrationAspect handlerOrchestrationAspect(
       ObjectProvider<OrchestrationConfiguration> configuration) {
     return new HandlerOrchestrationAspect(
-        configuration.getIfAvailable(OrchestrationConfiguration::defaults));
+        configuration.getIfAvailable(OrchestrationConfiguration::defaults),
+        handlerClass -> {
+          var retryConfiguration = handlerClass.getAnnotation(RetryConfiguration.class);
+          return retryConfiguration == null
+              ? new NoRetryExecutor()
+              : new AnnotationRetryExecutor(retryConfiguration);
+        });
   }
 }

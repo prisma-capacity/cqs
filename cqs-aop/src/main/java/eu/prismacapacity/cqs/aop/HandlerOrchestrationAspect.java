@@ -26,21 +26,25 @@ import eu.prismacapacity.cqs.core.retry.NoRetryExecutor;
 import eu.prismacapacity.cqs.core.retry.RetryExecutor;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
-import org.springframework.aop.support.AopUtils;
 
-/** Spring AOP adapter for CQS handler implementations; orchestration remains in core. */
+/** AspectJ adapter for CQS handler implementations; orchestration remains in core. */
 @Aspect
 @RequiredArgsConstructor
 public class HandlerOrchestrationAspect {
   @NonNull private final OrchestrationConfiguration configuration;
-  private final Map<Class<?>, RetryExecutor> annotationExecutors = new ConcurrentHashMap<>();
-  private final RetryExecutor defaultExecutor = new NoRetryExecutor();
+  private final Map<Class<?>, RetryExecutor> retryExecutors = new ConcurrentHashMap<>();
+  @NonNull private final Function<Class<?>, RetryExecutor> retryExecutorFactory;
+
+  public HandlerOrchestrationAspect(OrchestrationConfiguration configuration) {
+    this(configuration, handlerClass -> new NoRetryExecutor());
+  }
 
   @Around(
       value =
@@ -52,7 +56,7 @@ public class HandlerOrchestrationAspect {
   @SuppressWarnings("unchecked") // The matched handle method binds the handler's command type.
   public Object command(ProceedingJoinPoint invocation, Command command) {
     var target = (ICommandHandler<Command>) invocation.getTarget();
-    var handlerClass = AopUtils.getTargetClass(target);
+    var handlerClass = target.getClass();
     boolean allowsNull =
         ((MethodSignature) invocation.getSignature()).getReturnType() == void.class;
     return CommandOrchestrationSupport.orchestrate(
@@ -73,7 +77,7 @@ public class HandlerOrchestrationAspect {
   @SuppressWarnings("unchecked") // The matched handle method binds the handler's query type.
   public Object query(ProceedingJoinPoint invocation, Query query) {
     var target = (QueryHandler<Query, ?>) invocation.getTarget();
-    var handlerClass = AopUtils.getTargetClass(target);
+    var handlerClass = target.getClass();
     return QueryOrchestrationSupport.orchestrate(
         query,
         handlerClass,
@@ -84,13 +88,6 @@ public class HandlerOrchestrationAspect {
   }
 
   private RetryExecutor executorFor(Class<?> handlerClass) {
-    return annotationExecutors.computeIfAbsent(
-        handlerClass,
-        type -> {
-          var retryConfiguration = type.getAnnotation(RetryConfiguration.class);
-          return retryConfiguration == null
-              ? defaultExecutor
-              : new AnnotationRetryExecutor(retryConfiguration);
-        });
+    return retryExecutors.computeIfAbsent(handlerClass, retryExecutorFactory);
   }
 }

@@ -37,7 +37,7 @@
     </dependency>
     <dependency>
       <groupId>eu.prismacapacity</groupId>
-      <artifactId>cqs-aop</artifactId>
+      <artifactId>cqs-spring-aop</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

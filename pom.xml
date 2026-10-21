@@ -36,6 +36,7 @@
   <modules>
     <module>cqs-core</module>
     <module>cqs-aop</module>
+    <module>cqs-spring-aop</module>
     <module>spring-aop-example</module>
   </modules>
   <properties>

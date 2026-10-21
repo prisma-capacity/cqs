@@ -15,9 +15,9 @@
  */
 package eu.prismacapacity.cqs.examples.springaop;
 
-import eu.prismacapacity.cqs.aop.CqsAopConfiguration;
 import eu.prismacapacity.cqs.core.OrchestrationConfiguration;
 import eu.prismacapacity.cqs.core.metrics.CqsMetrics;
+import eu.prismacapacity.cqs.springaop.CqsAopConfiguration;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.List;

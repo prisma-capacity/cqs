@@ -1,34 +1,16 @@
-# CQS Spring AOP orchestration
+# CQS AspectJ orchestration
 
-Add `eu.prismacapacity:cqs-aop:0.0.1-SNAPSHOT` to a Spring application's dependencies,
-then import the configuration:
+This module contains the framework-independent `HandlerOrchestrationAspect` and
+`RetryConfiguration` annotation. It depends on `cqs-core` and AspectJ, with no Spring dependencies.
 
-```java
-import eu.prismacapacity.cqs.aop.CqsAopConfiguration;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
+Create the aspect with an `OrchestrationConfiguration` and register it with your AOP runtime.
+The single-argument constructor uses no retries. Supply a
+`Function<Class<?>, RetryExecutor>` as the second constructor argument to select a retry
+executor for each handler class; executors are cached by handler class.
 
-@Configuration(proxyBeanMethods = false)
-@Import(CqsAopConfiguration.class)
-public class HandlerConfiguration {}
-```
+The aspect supports `CommandHandler`, `TokenCommandHandler`, `RespondingCommandHandler`,
+and `QueryHandler` implementations, delegating validation, verification, response checks,
+metrics and retries to core orchestration.
 
-Spring Boot is not required. The module includes `cqs-core`, Spring AOP and AspectJ support,
-and enables class-based proxies. Register your handlers as Spring beans and call their public
-`handle` methods through injected references. The aspect supports `CommandHandler`,
-`TokenCommandHandler`, `RespondingCommandHandler`, and `QueryHandler` implementations.
-
-By default, orchestration uses `OrchestrationConfiguration.defaults()` and no retries.
-Supply an `OrchestrationConfiguration` bean to customize shared validators and metrics.
-Annotate handler classes with `@RetryConfiguration` to enable Spring Retry and configure
-maximum attempts, the backoff interval in milliseconds, an optional exponential backoff cap,
-and exception types to exclude. Exclusions also apply to business exceptions wrapped by
-core orchestration. Handlers without the annotation use no retries.
-Validation, verification, response checks, metrics and retries delegate to core orchestration.
-
-Handler classes and advised methods must be non-final. Self-invocation and calls on raw
-handler instances bypass Spring AOP. Do not wrap advised handlers in core processor factories,
-which would apply orchestration twice.
-
-See [spring-aop-example](../spring-aop-example/README.md) for application configuration,
-metrics and retry examples.
+For Spring configuration and annotation-based retries using Spring Retry, use
+[cqs-spring-aop](../cqs-spring-aop/README.md).

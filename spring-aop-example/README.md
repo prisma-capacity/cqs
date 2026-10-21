@@ -1,7 +1,8 @@
 # Spring AOP client example
 
-This module is a Spring Boot demo application using [cqs-aop](../cqs-aop/README.md).
-The reusable aspect and its Spring configuration live in `cqs-aop`; core remains framework-independent.
+This module is a Spring Boot demo application using [cqs-spring-aop](../cqs-spring-aop/README.md).
+The reusable aspect lives in `cqs-aop`; Spring configuration and retry implementation live in
+`cqs-spring-aop`. Core and the aspect remain independent of Spring.
 
 `SpringAopExample` receives managed handler references through constructor injection;
 its `main` method calls them directly:
@@ -96,7 +97,7 @@ excluding command/query validation exceptions and command verification exception
 Transient email-service failures are retried; existing handlers
 retain their default single-attempt behavior. The adapter supplies zero-based retry counts to the
 core callback. Validation runs once, verification runs per attempt, and exhaustion retains the CQS
-handling exception. Spring Retry is supplied by `cqs-aop`, with no second retry aspect.
+handling exception. Spring Retry is supplied by `cqs-spring-aop`, with no second retry aspect.
 Cases cover recovery, exhaustion, validation/verification failures, and an unannotated
 handler throwing the same transient exception without retrying.
 
